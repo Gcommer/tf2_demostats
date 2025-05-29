@@ -474,8 +474,8 @@ impl<'a> MatchAnalyzer<'a> {
                     //  - if projectile impacts and explodes on the first tick, no
                     //    projectile entity is created.
                     error!(
-												"Blast damage without a matching explosion type:{damage_type:?} (distance {d})"
-										);
+                        "Blast damage without a matching explosion type:{damage_type:?} (distance {d})"
+                    );
                 }
             }
         }
@@ -1735,14 +1735,14 @@ impl MessageHandler for MatchAnalyzer<'_> {
                         let Some(weapon) = self.get_weapon(&pe.last_active_weapon_handle) else {
                             error!(
                                 "Could not find active weapon ({}) for player that fired bullets {player:?}",
-																pe.last_active_weapon_handle
+                                pe.last_active_weapon_handle
                             );
                             continue;
                         };
                         let Some(item) = self.schema.items.get(&weapon.schema_id) else {
                             error!(
                                 "Could not find item schema for weapon ({}) for fired bullets {player:?}",
-																weapon.schema_id
+                                weapon.schema_id
                             );
                             continue;
                         };
