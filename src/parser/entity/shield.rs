@@ -62,7 +62,7 @@ impl Entity for Shield {
         s
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
@@ -73,7 +73,7 @@ impl Entity for Shield {
         p
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<ShieldPatch>().unwrap();
         self.merge_opt(*patch);
     }

@@ -46,14 +46,14 @@ pub trait Entity: std::fmt::Debug {
     where
         Self: Sized;
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
         game: &mut MatchAnalyzerView,
     ) -> Box<dyn Any>;
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>);
+    fn apply_delta(&mut self, patch: Box<dyn Any>);
 
     // Entities are stored as Box<dyn T> for polymorphism, but that means
     // the consuming methods delete()/leave() cannot be invoked until
@@ -118,7 +118,7 @@ impl Entity for Unknown {
         Unknown {}
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         _packet: &PacketEntity,
         _parser_state: &ParserState,
@@ -127,7 +127,7 @@ impl Entity for Unknown {
         Box::new(UnknownPatch::default())
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<UnknownPatch>().unwrap();
         self.merge_opt(*patch);
     }

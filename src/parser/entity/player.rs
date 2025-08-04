@@ -312,7 +312,7 @@ impl Entity for Player {
         s
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
@@ -389,7 +389,7 @@ impl Entity for Player {
         patch
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<PlayerPatch>().unwrap();
         self.apply_patch(&patch);
     }

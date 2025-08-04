@@ -25,7 +25,7 @@ actix-web = "4.9"
 actix-multipart = "0.7.2"
 tracing = { version = "0.1.41", features = ["release_max_level_info"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-tf-demo-parser = { git = "https://github.com/demostf/parser.git", rev = "e7451375c250d49802948c9d6d6a535a9575e910" }
+tf-demo-parser = { git = "https://github.com/gcommer/parser.git", rev = "d7ccf18de0f03202365b804ea3a2744a61e60899" }
 tokio = { version = "1.24.2", features = ["rt", "rt-multi-thread", "macros"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.134"

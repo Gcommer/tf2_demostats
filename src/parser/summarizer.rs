@@ -581,7 +581,7 @@ impl<'a> MatchAnalyzer<'a> {
             && class_name != "CTFDroppedWeapon"
             && class_name != "CBaseDoor"
             && !(class_name == "CTFPlayer"
-                && packet.update_type == UpdateType::Preserve
+                && packet.update_type == UpdateType::Delta
                 && packet.props.len() == 1
                 && packet.props[0].identifier == SIM_TIME)
         {
@@ -639,10 +639,10 @@ impl<'a> MatchAnalyzer<'a> {
                 };
                 self.entities[eid] = Some(e);
             }
-            UpdateType::Preserve => {
+            UpdateType::Delta => {
                 let Some(ref e) = self.entities[eid] else {
                     error!(
-                        "Preserve update for unknown entity {} in {:?}",
+                        "Delta update for unknown entity {} in {:?}",
                         packet.entity_index, packet
                     );
                     return;
@@ -666,11 +666,11 @@ impl<'a> MatchAnalyzer<'a> {
                     tick: self.tick,
                 };
 
-                let update = e.parse_preserve(packet, parser_state, &mut ma);
+                let update = e.parse_delta(packet, parser_state, &mut ma);
 
                 let e = self.entities[eid].as_mut().unwrap(); // safety: checked above
 
-                e.apply_preserve(update);
+                e.apply_delta(update);
             }
             UpdateType::Delete | UpdateType::Leave => {
                 self.deleted_entities.insert(packet.entity_index.clone());

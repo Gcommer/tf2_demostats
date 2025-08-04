@@ -427,7 +427,7 @@ impl Entity for Projectile {
         }
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
@@ -467,7 +467,7 @@ impl Entity for Projectile {
         });
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<ProjectilePatch>().unwrap();
 
         if let (p, Some(n)) = (self.origin, patch.origin) {

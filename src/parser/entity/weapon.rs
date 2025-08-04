@@ -86,7 +86,7 @@ impl Entity for Weapon {
         s
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
@@ -104,7 +104,7 @@ impl Entity for Weapon {
         Box::new(p)
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<WeaponPatch>().unwrap();
 
         // Hack: mediguns get set to 0 charge the same tick that the med dies, but we want to keep

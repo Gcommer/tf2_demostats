@@ -85,7 +85,7 @@ impl Entity for Teleporter {
         }
     }
 
-    fn parse_preserve(
+    fn parse_delta(
         &self,
         packet: &PacketEntity,
         parser_state: &ParserState,
@@ -94,7 +94,7 @@ impl Entity for Teleporter {
         Box::new(Teleporter::parse(packet, parser_state, game))
     }
 
-    fn apply_preserve(&mut self, patch: Box<dyn Any>) {
+    fn apply_delta(&mut self, patch: Box<dyn Any>) {
         let patch = patch.downcast::<TeleporterPatch>().unwrap();
         self.merge_opt(*patch);
     }
