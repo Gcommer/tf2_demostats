@@ -884,7 +884,10 @@ impl<'a> MatchAnalyzer<'a> {
                     trace!("Waiting for players: {}", self.waiting_for_players);
                 }
                 (ROUND_STATE, SendPropValue::Integer(x)) => match RoundState::try_from(*x as u16) {
-                    Ok(x) => self.round_state = x,
+                    Ok(x) => {
+                        trace!("RoundState: {x:?}");
+                        self.round_state = x;
+                    }
                     Err(e) => error!("Could not parse RoundState: {e}"),
                 },
                 (id, value) => {
@@ -1791,7 +1794,11 @@ impl MessageHandler for MatchAnalyzer<'_> {
                     }
                 }
 
+                GameEvent::TeamPlayRoundStart(e) => {
+                    trace!("{e:?}");
+                }
                 GameEvent::TeamPlayRoundWin(e) => {
+                    trace!("{e:?}");
                     let winner = Team::try_from(e.team).unwrap_or_else(|_| {
                         error!("Unknown team id won round: {}", e.team);
                         Team::Spectator // Weird, but "Team::Other" is used for stalemates!
