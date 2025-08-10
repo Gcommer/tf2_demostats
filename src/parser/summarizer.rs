@@ -1,4 +1,5 @@
 use crate::{
+    ordered_vec,
     parser::{
         entity::{self, Entity, ProjectileType},
         game::{
@@ -270,9 +271,9 @@ pub struct RoundSummary {
     pub mvps: Vec<String>,           // steamids
     pub players: Vec<PlayerSummary>, // steamids
 
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", serialize_with = "ordered_vec")]
     pub winners: Vec<String>, // steamids
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", serialize_with = "ordered_vec")]
     pub losers: Vec<String>, // steamids
 }
 
