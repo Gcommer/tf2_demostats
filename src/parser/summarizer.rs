@@ -1623,7 +1623,7 @@ impl MessageHandler for MatchAnalyzer<'_> {
                         for p in &e.props {
                             match (p.identifier, &p.value) {
                                 (EFFECT_ENTITY, &SendPropValue::Integer(x)) => {
-                                    entity = Some((x as u32) + 1);
+                                    entity = Some(x as u32);
                                 }
                                 (EFFECT_NAME, &SendPropValue::Integer(x)) => {
                                     name_id = Some(x as u32);
