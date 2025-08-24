@@ -93,7 +93,12 @@ struct PlayerPatch {
 }
 
 impl Player {
-    fn parse(packet: &PacketEntity, parser_state: &ParserState, patch: &mut PlayerPatch) {
+    fn parse(
+        packet: &PacketEntity,
+        parser_state: &ParserState,
+        patch: &mut PlayerPatch,
+        debug: bool,
+    ) {
         for prop in packet.props(parser_state) {
             match (prop.identifier, &prop.value) {
                 (KILLS, &SendPropValue::Integer(val)) => {
@@ -202,7 +207,9 @@ impl Player {
                 (COSMETIC_7, &SendPropValue::Integer(x)) => patch.cosmetics[7] = Some(x as u32),
 
                 _ => {
-                    trace!("player unused prop {:?}: {prop:?}", packet.entity_index);
+                    if debug {
+                        trace!("player unused prop {:?}: {prop:?}", packet.entity_index);
+                    }
                 }
             }
         }
@@ -271,8 +278,16 @@ impl Entity for Player {
         parser_state: &ParserState,
         game: &mut MatchAnalyzerView,
     ) -> Self {
+        let mut fake = false;
+        if let Some(&user_id) = game.user_entities.get(&packet.entity_index) {
+            if let Some(steamid) = game.user_id_to_steam_id.get(&user_id).cloned() {
+                if let Some(summary) = game.player_summaries.get_mut(&steamid) {
+                    fake = summary.is_fake_player;
+                }
+            }
+        }
         let mut patch = PlayerPatch::default();
-        Player::parse(packet, parser_state, &mut patch);
+        Player::parse(packet, parser_state, &mut patch, !fake);
 
         let mut s = Self::default();
 
@@ -320,8 +335,17 @@ impl Entity for Player {
     ) -> Box<dyn Any> {
         let user_id = self.user_id;
 
+        let mut fake = false;
+        if let Some(&user_id) = game.user_entities.get(&packet.entity_index) {
+            if let Some(steamid) = game.user_id_to_steam_id.get(&user_id).cloned() {
+                if let Some(summary) = game.player_summaries.get_mut(&steamid) {
+                    fake = summary.is_fake_player;
+                }
+            }
+        }
+
         let mut patch = Box::new(PlayerPatch::default());
-        Player::parse(packet, parser_state, &mut patch);
+        Player::parse(packet, parser_state, &mut patch, !fake);
 
         let Some(steamid) = game.user_id_to_steam_id.get(&user_id).cloned() else {
             error!("Unknown steamid mapping for player user id: {}", user_id);

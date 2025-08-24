@@ -54,7 +54,7 @@ impl Weapon {
 
                 _ => {
                     trace!(
-                        "Unknown weaapon prop on {} {class_name}: {prop:?}",
+                        "Unknown weapon prop on {} {class_name}: {prop:?}",
                         packet.entity_index
                     );
                 }
