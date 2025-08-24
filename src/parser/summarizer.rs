@@ -1821,7 +1821,7 @@ impl MessageHandler for MatchAnalyzer<'_> {
                             .player_summaries
                             .values()
                             // ignore players that have left
-                            .filter(|p| p.tick_end.is_none())
+                            .filter(|p| p.tick_start.is_some() && p.tick_end.is_none())
                         {
                             let Some(pe) = self.get_player(&p.entity_id) else {
                                 error!("Missing player at round end {:?}", p.entity_id);
