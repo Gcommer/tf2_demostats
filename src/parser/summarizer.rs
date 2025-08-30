@@ -150,6 +150,7 @@ pub struct MatchAnalyzer<'a> {
 
     weapon_class_ids: HashSet<ClassId>,
     projectile_class_ids: HashSet<ClassId>,
+    round_starts: u8,
 }
 
 pub struct MatchAnalyzerView<'a> {
@@ -248,6 +249,7 @@ pub enum Event {
     Death(Box<PlayerDeathEvent>),
     Hurt(PlayerHurtEvent),
     MedigunCharged(u32),
+    RoundStart,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
@@ -275,6 +277,12 @@ pub struct RoundSummary {
     pub winners: Vec<String>, // steamids
     #[serde(skip_serializing_if = "Vec::is_empty", serialize_with = "ordered_vec")]
     pub losers: Vec<String>, // steamids
+
+    #[serde(skip_serializing_if = "is_false")]
+    pub waiting_for_players: bool,
+
+    pub start_tick: DemoTick,
+    pub end_tick: DemoTick,
 }
 
 impl<'a> MatchAnalyzer<'a> {
@@ -313,6 +321,7 @@ impl<'a> MatchAnalyzer<'a> {
             removed_colliders: Vec::with_capacity(ENTITY_COUNT),
             projectile_class_ids: Default::default(),
             weapon_class_ids: Default::default(),
+            round_starts: 0,
         }
     }
 
@@ -877,12 +886,15 @@ impl<'a> MatchAnalyzer<'a> {
             }
         }
     }
-    pub fn handle_game_rules(&mut self, entity: &PacketEntity, _parser_state: &ParserState) {
-        for prop in &entity.props {
+    pub fn handle_game_rules(&mut self, entity: &PacketEntity, parser_state: &ParserState) {
+        for prop in entity.props(parser_state) {
             match (prop.identifier, &prop.value) {
                 (WAITING_FOR_PLAYERS, SendPropValue::Integer(x)) => {
                     self.waiting_for_players = *x == 1;
                     trace!("Waiting for players: {}", self.waiting_for_players);
+                    if self.waiting_for_players {
+                        self.current_round.waiting_for_players = true;
+                    }
                 }
                 (ROUND_STATE, SendPropValue::Integer(x)) => match RoundState::try_from(*x as u16) {
                     Ok(x) => {
@@ -1494,6 +1506,9 @@ impl<'a> MatchAnalyzer<'a> {
                     };
                     player.handle_charged(item);
                 }
+                Event::RoundStart => {
+                    self.end_round();
+                }
             }
         }
 
@@ -1529,6 +1544,29 @@ impl<'a> MatchAnalyzer<'a> {
             }
         }
     }
+
+    fn end_round(&mut self) {
+        // Populate players for the round that just ended
+        for player_summary in self.player_summaries.values() {
+            // Optionally filter for players active in this round if needed,
+            // for now, we take a snapshot of all known players.
+            // Players who left mid-round will have their stats up to that point.
+            self.current_round.players.push(player_summary.clone());
+        }
+        self.current_round
+            .players
+            .sort_by_cached_key(|p| p.steamid.clone());
+
+        self.current_round.end_tick = self.tick;
+        self.rounds.push(std::mem::take(&mut self.current_round));
+        self.current_round.start_tick = self.tick;
+        self.current_round.waiting_for_players = self.waiting_for_players;
+
+        // Reset stats for all players for the new round
+        for player_summary in self.player_summaries.values_mut() {
+            player_summary.reset_stats();
+        }
+    }
 }
 
 impl MessageHandler for MatchAnalyzer<'_> {
@@ -1548,7 +1586,6 @@ impl MessageHandler for MatchAnalyzer<'_> {
     fn handle_message(&mut self, message: &Message, tick: DemoTick, parser_state: &ParserState) {
         if tick != self.tick {
             self.handle_tick(&tick, None);
-            self.tick = tick;
         }
         match message {
             Message::NetTick(t) => self.handle_tick(&tick, Some(t)),
@@ -1796,10 +1833,18 @@ impl MessageHandler for MatchAnalyzer<'_> {
                 }
 
                 GameEvent::TeamPlayRoundStart(e) => {
-                    trace!("{e:?}");
+                    error!(
+                        "round start {:?} x:{} {e:?}",
+                        self.round_state, self.round_starts
+                    );
+                    self.round_starts += 1;
+
+                    // Delay ending the round to the end of the tick, because the "Waiting for
+                    // Players" and some other states are resolved later in the tick.
+                    self.tick_events.push(Event::RoundStart);
                 }
                 GameEvent::TeamPlayRoundWin(e) => {
-                    trace!("{e:?}");
+                    error!("{e:?}");
                     let winner = Team::try_from(e.team).unwrap_or_else(|_| {
                         error!("Unknown team id won round: {}", e.team);
                         Team::Spectator // Weird, but "Team::Other" is used for stalemates!
@@ -1847,24 +1892,6 @@ impl MessageHandler for MatchAnalyzer<'_> {
                             losers.push(p.steamid.clone());
                         }
                         self.current_round.losers = losers;
-                    }
-
-                    // Populate players for the round that just ended
-                    for player_summary in self.player_summaries.values() {
-                        // Optionally filter for players active in this round if needed,
-                        // for now, we take a snapshot of all known players.
-                        // Players who left mid-round will have their stats up to that point.
-                        self.current_round.players.push(player_summary.clone());
-                    }
-                    self.current_round
-                        .players
-                        .sort_by_cached_key(|p| p.steamid.clone());
-
-                    self.rounds.push(std::mem::take(&mut self.current_round));
-
-                    // Reset stats for all players for the new round
-                    for player_summary in self.player_summaries.values_mut() {
-                        player_summary.reset_stats();
                     }
                 }
 
@@ -2034,6 +2061,8 @@ impl MessageHandler for MatchAnalyzer<'_> {
     }
 
     fn into_output(mut self, _parser_state: &ParserState) -> <Self as MessageHandler>::Output {
+        self.end_round();
+
         // If the demo ends mid-round, capture the state of the current_round
         // We can check if current_round has any meaningful data, e.g., time > 0 or specific events occurred.
         // A simple check could be if any players have stats, or if round_state indicates it started.
