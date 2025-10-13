@@ -2063,39 +2063,6 @@ impl MessageHandler for MatchAnalyzer<'_> {
     fn into_output(mut self, _parser_state: &ParserState) -> <Self as MessageHandler>::Output {
         self.end_round();
 
-        // If the demo ends mid-round, capture the state of the current_round
-        // We can check if current_round has any meaningful data, e.g., time > 0 or specific events occurred.
-        // A simple check could be if any players have stats, or if round_state indicates it started.
-        // For now, we'll assume if self.current_round.time > 0 or if it's not default, it's a partial round.
-        // A more robust check might be needed depending on how RoundSummary is populated.
-        // Let's assume if there are any players, or if round time is set, it's a round.
-        if self.current_round.time > 0.0
-            || !self.player_summaries.is_empty() && self.rounds.is_empty()
-            || (self.round_state != RoundState::default()
-                && self.round_state != RoundState::Pregame)
-        {
-            for player_summary in self.player_summaries.values() {
-                self.current_round.players.push(player_summary.clone());
-            }
-            self.current_round
-                .players
-                .sort_by_cached_key(|p| p.steamid.clone());
-            self.rounds.push(std::mem::take(&mut self.current_round));
-        }
-
-        // Update tick_end for all players in self.player_summaries who are still "connected"
-        // This ensures their global connection span is correctly recorded.
-        // The PlayerSummary objects within each round are snapshots and won't be affected here.
-        for summary in self.player_summaries.values_mut() {
-            if summary.tick_start.is_none() {
-                // Player might have info but never fully entered an entity processing loop
-                summary.tick_start = Some(self.tick);
-            }
-            if summary.tick_end.is_none() {
-                summary.tick_end = Some(self.tick);
-            }
-        }
-
         DemoSummary {
             rounds: self.rounds,
             chat: self.chat,
